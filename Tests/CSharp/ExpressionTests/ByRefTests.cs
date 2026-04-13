@@ -944,7 +944,7 @@ End Class";
     End Sub
 End Class";
 
-        var options = new TextConversionOptions(References);
+        var options = new TextConversionOptions(DefaultReferences.With()) { ShowCompilationErrors = true };
         var languageConversion = new VBToCSConversion { ConversionOptions = options };
         var serviceTree = languageConversion.CreateTree(serviceFileContent);
         var callerTree = languageConversion.CreateTree(callerFileContent);
