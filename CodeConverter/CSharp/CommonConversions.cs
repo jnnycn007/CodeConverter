@@ -664,11 +664,28 @@ internal class CommonConversions
 
     public bool IsExtensionAttribute(VBSyntax.AttributeSyntax a)
     {
+        if (a.SyntaxTree != SemanticModel.SyntaxTree)
+            return AttributeNameMatches(a, "Extension");
         return (SemanticModel.GetTypeInfo(a).ConvertedType?.GetFullMetadataName())
             ?.Equals(ExtensionAttributeType.FullName, StringComparison.Ordinal) == true;
     }
 
-    public bool IsOutAttribute(VBSyntax.AttributeSyntax a) => SemanticModel.GetTypeInfo(a).ConvertedType.IsOutAttribute();
+    public bool IsOutAttribute(VBSyntax.AttributeSyntax a)
+    {
+        if (a.SyntaxTree != SemanticModel.SyntaxTree)
+            return AttributeNameMatches(a, "Out");
+        return SemanticModel.GetTypeInfo(a).ConvertedType.IsOutAttribute();
+    }
+
+    // SemanticModel.GetTypeInfo throws when the node is not in its syntax tree; fall back to name matching.
+    private static bool AttributeNameMatches(VBSyntax.AttributeSyntax a, string shortName)
+    {
+        var name = a.Name.ToString();
+        return name.Equals(shortName, StringComparison.Ordinal) ||
+               name.Equals(shortName + "Attribute", StringComparison.Ordinal) ||
+               name.EndsWith("." + shortName, StringComparison.Ordinal) ||
+               name.EndsWith("." + shortName + "Attribute", StringComparison.Ordinal);
+    }
 
     public ISymbol GetCsOriginalSymbolOrNull(ISymbol symbol)
     {
