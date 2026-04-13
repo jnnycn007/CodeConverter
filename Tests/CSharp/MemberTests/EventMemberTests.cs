@@ -735,6 +735,132 @@ public partial class SomeClass
     }
 
     [Fact]
+    public async Task Issue1242_WinformsNullRefOnBareIdentifierInInitializeComponentAsync()
+    {
+        // Regression test: bare identifier (no Me. prefix) in InitializeComponent caused a NullReferenceException
+        // in WinformsConversions.CreatePropertyAssignment when s.Left is IdentifierNameSyntax and
+        // LastOrDefaultDescendant returns null (since DescendantNodes does not include the node itself).
+        await TestConversionVisualBasicToCSharpAsync(@"Imports System
+Imports System.Windows.Forms
+Imports Microsoft.VisualBasic.CompilerServices
+
+Partial Class BaseForm
+    Inherits Form
+    Friend WithEvents BaseButton As Button
+End Class
+
+<DesignerGenerated>
+Partial Class BaseForm
+    Inherits System.Windows.Forms.Form
+
+    Private Sub InitializeComponent()
+        BaseButton = New Button()
+    End Sub
+End Class
+
+<DesignerGenerated>
+Partial Class Form1
+    Inherits BaseForm
+    Private Sub InitializeComponent()
+        Me.Button1 = New Button()
+    End Sub
+    Friend WithEvents Button1 As Button
+End Class
+
+Partial Class Form1
+    Private Sub MultiClickHandler(sender As Object, e As EventArgs) Handles Button1.Click,
+                                                                            BaseButton.Click
+    End Sub
+End Class", @"using System;
+using System.Runtime.CompilerServices;
+using System.Windows.Forms;
+using Microsoft.VisualBasic.CompilerServices; // Install-Package Microsoft.VisualBasic
+
+internal partial class BaseForm : Form
+{
+    private Button _BaseButton;
+
+    internal virtual Button BaseButton
+    {
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        get
+        {
+            return _BaseButton;
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        set
+        {
+            _BaseButton = value;
+        }
+    }
+
+    public BaseForm()
+    {
+        InitializeComponent();
+        BaseButton = _BaseButton;
+    }
+}
+
+[DesignerGenerated]
+internal partial class BaseForm : Form
+{
+
+    private void InitializeComponent()
+    {
+        _BaseButton = new Button();
+    }
+}
+
+[DesignerGenerated]
+internal partial class Form1 : BaseForm
+{
+    internal override Button BaseButton
+    {
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        get
+        {
+            return base.BaseButton;
+        }
+
+        [MethodImpl(MethodImplOptions.Synchronized)]
+        set
+        {
+            if (base.BaseButton != null)
+            {
+                base.BaseButton.Click -= MultiClickHandler;
+            }
+
+            base.BaseButton = value;
+            if (base.BaseButton != null)
+            {
+                base.BaseButton.Click += MultiClickHandler;
+            }
+        }
+    }
+
+    public Form1()
+    {
+        InitializeComponent();
+    }
+    private void InitializeComponent()
+    {
+        Button1 = new Button();
+        Button1.Click += new EventHandler(MultiClickHandler);
+    }
+    internal Button Button1;
+}
+
+internal partial class Form1
+{
+    private void MultiClickHandler(object sender, EventArgs e)
+    {
+    }
+}
+");
+    }
+
+    [Fact]
     public async Task Test_Issue701_MultiLineHandlesSyntaxAsync()
     {
         await TestConversionVisualBasicToCSharpAsync(@"Public Class Form1
