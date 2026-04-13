@@ -664,11 +664,33 @@ internal class CommonConversions
 
     public bool IsExtensionAttribute(VBSyntax.AttributeSyntax a)
     {
+        // Guard against attributes from a different syntax tree (see IsOutAttribute for details).
+        if (a.SyntaxTree != SemanticModel.SyntaxTree) {
+            var name = a.Name.ToString();
+            return name.Equals("Extension", StringComparison.Ordinal) ||
+                   name.Equals("ExtensionAttribute", StringComparison.Ordinal) ||
+                   name.EndsWith(".Extension", StringComparison.Ordinal) ||
+                   name.EndsWith(".ExtensionAttribute", StringComparison.Ordinal);
+        }
         return (SemanticModel.GetTypeInfo(a).ConvertedType?.GetFullMetadataName())
             ?.Equals(ExtensionAttributeType.FullName, StringComparison.Ordinal) == true;
     }
 
-    public bool IsOutAttribute(VBSyntax.AttributeSyntax a) => SemanticModel.GetTypeInfo(a).ConvertedType.IsOutAttribute();
+    public bool IsOutAttribute(VBSyntax.AttributeSyntax a)
+    {
+        // If the attribute's syntax tree differs from the current semantic model's tree (e.g. the
+        // parameter is declared in another source file or in a metadata assembly), calling
+        // SemanticModel.GetTypeInfo on it throws "Knoten ist nicht innerhalb Syntaxbaum" /
+        // "Node is not within syntax tree". Fall back to a name-based check in that case.
+        if (a.SyntaxTree != SemanticModel.SyntaxTree) {
+            var name = a.Name.ToString();
+            return name.Equals("Out", StringComparison.Ordinal) ||
+                   name.Equals("OutAttribute", StringComparison.Ordinal) ||
+                   name.EndsWith(".Out", StringComparison.Ordinal) ||
+                   name.EndsWith(".OutAttribute", StringComparison.Ordinal);
+        }
+        return SemanticModel.GetTypeInfo(a).ConvertedType.IsOutAttribute();
+    }
 
     public ISymbol GetCsOriginalSymbolOrNull(ISymbol symbol)
     {
