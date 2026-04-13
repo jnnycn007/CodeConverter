@@ -1,4 +1,6 @@
 ﻿using System.Threading.Tasks;
+using ICSharpCode.CodeConverter.Common;
+using ICSharpCode.CodeConverter.CSharp;
 using ICSharpCode.CodeConverter.Tests.TestRunners;
 using Xunit;
 
@@ -912,6 +914,51 @@ public partial class BinaryExpressionRefParameter
         arg = 0;
     }
 }");
+    }
+
+    [Fact]
+    public async Task Issue1225_OutAttributeOnParameterFromOtherFileDoesNotCrashAsync()
+    {
+        // Issue #1225: IsOutAttribute called SemanticModel.GetTypeInfo(attribute) on an attribute node
+        // that belongs to a different syntax tree (parameter declared in a separate source file).
+        // This caused ArgumentException "Knoten ist nicht innerhalb Syntaxbaum" /
+        // "Node is not within syntax tree". The fix falls back to name-based checking
+        // when the attribute's syntax tree differs from the current semantic model's tree.
+        var serviceFileContent = @"Imports System.Runtime.InteropServices
+Public Class LicenseService
+    Public Shared ReadOnly Property Instance As LicenseService
+        Get
+            Return New LicenseService()
+        End Get
+    End Property
+
+    Public Function GetLicenseMaybe(<Out> ByRef licenseName As String) As Boolean
+        licenseName = Nothing
+        Return False
+    End Function
+End Class";
+
+        var callerFileContent = @"Public Class Caller
+    Public Sub Test(licenseName As String)
+        Dim res = LicenseService.Instance.GetLicenseMaybe(licenseName)
+    End Sub
+End Class";
+
+        var options = new TextConversionOptions(References);
+        var languageConversion = new VBToCSConversion { ConversionOptions = options };
+        var serviceTree = languageConversion.CreateTree(serviceFileContent);
+        var callerTree = languageConversion.CreateTree(callerFileContent);
+
+        // Add both files to the same project so that the VB compilation sees both
+        var serviceDoc = await languageConversion.CreateProjectDocumentFromTreeAsync(serviceTree, options.References);
+        var callerDoc = serviceDoc.Project.AddDocumentFromTree(callerTree);
+
+        // Convert only the caller document; its parameter info comes from the service file's syntax tree
+        var result = await ProjectConversion.ConvertSingleAsync<VBToCSConversion>(callerDoc, options);
+        var output = (result.ConvertedCode ?? "") + (result.GetExceptionsAsString() ?? "");
+
+        Assert.DoesNotContain("#error", output);
+        Assert.Contains("GetLicenseMaybe", output);
     }
 
 }
