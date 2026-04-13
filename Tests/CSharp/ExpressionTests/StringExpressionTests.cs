@@ -552,6 +552,7 @@ public partial class Issue806
         Dim testChar As Char = Nothing
         Dim testResult = testChar = """"
         Dim testResult2 = """" = testChar
+        Dim testResult3 = testChar <> """"
     End Sub
 End Class", @"
 internal partial class TestClass
@@ -561,6 +562,7 @@ internal partial class TestClass
         char testChar = default;
         bool testResult = testChar == char.MinValue;
         bool testResult2 = char.MinValue == testChar;
+        bool testResult3 = testChar != char.MinValue;
     }
 }");
     }
