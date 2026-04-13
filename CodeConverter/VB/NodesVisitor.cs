@@ -1645,7 +1645,7 @@ internal class NodesVisitor : CS.CSharpSyntaxVisitor<VisualBasicSyntaxNode>
     {
         if (node.Pattern is CSSyntax.RelationalPatternSyntax relational) {
             var value = (ExpressionSyntax)relational.Expression.Accept(TriviaConvertingVisitor);
-            var (caseClauseKind, tokenKind) = GetRelationalCaseClauseKinds(relational.OperatorToken.Kind());
+            var (caseClauseKind, tokenKind) = GetRelationalCaseClauseKinds(CS.CSharpExtensions.Kind(relational.OperatorToken));
             return SyntaxFactory.RelationalCaseClause(caseClauseKind,
                 SyntaxFactory.Token(tokenKind), value);
         }
