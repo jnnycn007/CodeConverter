@@ -1089,13 +1089,13 @@ public partial class TestClass
         {
             case var @case when 0 <= @case && @case <= 3:
             case 4:
-            case var case1 when case1 >= 5:
-            case var case2 when case2 < 6:
-            case var case3 when case3 <= 7:
+            case >= 5:
+            case < 6:
+            case <= 7:
                 {
                     return ""this week"";
                 }
-            case var case4 when case4 > 0:
+            case > 0:
                 {
                     return daysAgo / 7 + "" weeks ago"";
                 }
@@ -1292,7 +1292,7 @@ public partial class TestClass2
         var rand = new Random();
         switch (rand.Next(8))
         {
-            case var @case when @case < 4:
+            case < 4:
                 {
                     break;
                 }
@@ -1300,7 +1300,7 @@ public partial class TestClass2
                 {
                     break;
                 }
-            case var case1 when case1 > 4:
+            case > 4:
                 {
                     break;
                 }
@@ -1311,9 +1311,46 @@ public partial class TestClass2
                 }
         }
     }
-}
-1 target compilation errors:
-CS0825: The contextual keyword 'var' may only appear within a local variable declaration or in script code");
+}");
+    }
+
+    [Fact]
+    public async Task Issue803SelectCaseIsRelationalUsesC9PatternAsync()
+    {
+        await TestConversionVisualBasicToCSharpAsync(@"Public Class TestClass
+    Function Rollo(Breite As Integer) As Integer
+        Select Case Breite
+            Case Is < 1000
+                Return 12
+            Case Is < 1200
+                Return 15
+            Case Else
+                Return 28
+        End Select
+    End Function
+End Class", @"
+public partial class TestClass
+{
+    public int Rollo(int Breite)
+    {
+        switch (Breite)
+        {
+            case < 1000:
+                {
+                    return 12;
+                }
+            case < 1200:
+                {
+                    return 15;
+                }
+
+            default:
+                {
+                    return 28;
+                }
+        }
+    }
+}");
     }
 
     [Fact]
