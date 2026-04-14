@@ -71,17 +71,20 @@ public class SolutionConverter
     public async IAsyncEnumerable<ConversionResult> ConvertAsync()
     {
         var projectsToUpdateReferencesOnly = _projectsToConvert.First().Solution.Projects.Except(_projectsToConvert);
-        var solutionResult = string.IsNullOrWhiteSpace(_sourceSolutionContents) ? Enumerable.Empty<ConversionResult>() : ConvertSolutionFile().Yield();
-        var convertedProjects = await ConvertProjectsAsync();
-        var projectsAndSolutionResults = UpdateProjectReferences(projectsToUpdateReferencesOnly).Concat(solutionResult).ToAsyncEnumerable();
-        await foreach (var p in convertedProjects.Concat(projectsAndSolutionResults)) {
-            yield return p;
-        }
-    }
 
-    private async Task<IAsyncEnumerable<ConversionResult>> ConvertProjectsAsync()
-    {
-        return _projectsToConvert.ToAsyncEnumerable().SelectMany(ConvertProjectAsync);
+        foreach (var project in _projectsToConvert) {
+            await foreach (var result in ConvertProjectAsync(project).WithCancellation(_cancellationToken)) {
+                yield return result;
+            }
+        }
+
+        foreach (var result in UpdateProjectReferences(projectsToUpdateReferencesOnly)) {
+            yield return result;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_sourceSolutionContents)) {
+            yield return ConvertSolutionFile();
+        }
     }
 
     private IAsyncEnumerable<ConversionResult> ConvertProjectAsync(Project project)

@@ -31,6 +31,15 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.2" />
+    <!--
+      System.Linq.AsyncEnumerable only ships as a 10.x package, so it transitively pulls in
+      Microsoft.Bcl.AsyncInterfaces 10.0.0.0. That's fine here because the CodeConv CLI never
+      loads into devenv.exe (unlike the Vsix), so the VS-shipped binding redirect ceiling on
+      Microsoft.Bcl.AsyncInterfaces does not apply. The CodeConverter library itself avoids
+      depending on this package precisely so the Vsix output stays compatible with VS 17.x.
+      See VsixAssemblyCompatibilityTests.
+    -->
+    <PackageReference Include="System.Linq.AsyncEnumerable" Version="10.0.0" />
     <PackageReference Include="Microsoft.Build.Tasks.Core" Version="17.8.43" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="4.14.0" />

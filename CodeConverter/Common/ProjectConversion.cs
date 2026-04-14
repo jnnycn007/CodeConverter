@@ -50,7 +50,7 @@ public class ProjectConversion
         if (conversionOptions.SelectedTextSpan is { Length: > 0 } span) {
             document = await WithAnnotatedSelectionAsync(document, span);
         }
-        var conversionResults = await ConvertDocumentsAsync<TLanguageConversion>(new[] {document}, conversionOptions, progress, cancellationToken).ToArrayAsync(cancellationToken);
+        var conversionResults = await ConvertDocumentsAsync<TLanguageConversion>(new[] {document}, conversionOptions, progress, cancellationToken).ToArraySafeAsync(cancellationToken);
         var codeResult = conversionResults.First(r => r.SourcePathOrNull == document.FilePath);
         codeResult.Exceptions = conversionResults.SelectMany(x => x.Exceptions).ToArray();
         return codeResult;
@@ -183,7 +183,7 @@ public class ProjectConversion
     {
         var phaseProgress = StartPhase(progress, "Phase 1 of 2:");
         var firstPassResults = _documentsToConvert.ParallelSelectAwaitAsync(d => FirstPassLoggedAsync(d, phaseProgress), Env.MaxDop, _cancellationToken);
-        var (proj1, docs1) = await _projectContentsConverter.GetConvertedProjectAsync(await firstPassResults.ToArrayAsync(_cancellationToken));
+        var (proj1, docs1) = await _projectContentsConverter.GetConvertedProjectAsync(await firstPassResults.ToArraySafeAsync(_cancellationToken));
 
         var warnings = await GetProjectWarningsAsync(_projectContentsConverter.SourceProject, proj1);
         if (!string.IsNullOrWhiteSpace(warnings)) {
@@ -193,7 +193,7 @@ public class ProjectConversion
 
         phaseProgress = StartPhase(progress, "Phase 2 of 2:");
         var secondPassResults = proj1.GetDocuments(docs1).ParallelSelectAwaitAsync(d => SecondPassLoggedAsync(d, phaseProgress), Env.MaxDop, _cancellationToken);
-        await foreach (var result in secondPassResults.Select(CreateConversionResult).WithCancellation(_cancellationToken)) {
+        await foreach (var result in secondPassResults.SelectSafe(CreateConversionResult).WithCancellation(_cancellationToken)) {
             yield return result;
         }
         await foreach (var result in _projectContentsConverter.GetAdditionalConversionResultsAsync(_additionalDocumentsToConvert, _cancellationToken)) {

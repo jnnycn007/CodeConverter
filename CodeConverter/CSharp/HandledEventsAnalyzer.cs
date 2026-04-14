@@ -37,8 +37,10 @@ internal class HandledEventsAnalyzer
 #pragma warning restore RS1024 // Compare symbols correctly
 
 
-        var writtenWithEventsProperties = await ancestorPropsMembersByName.Values.OfType<IPropertySymbol>().ToAsyncEnumerable()
-            .ToDictionaryAsync(async (p, _) => p.Name, async (p, cancellationToken) => (p, await IsNeverWrittenOrOverriddenAsync(p, cancellationToken)));
+        var writtenWithEventsProperties = new Dictionary<string, (IPropertySymbol p, bool)>();
+        foreach (var prop in ancestorPropsMembersByName.Values.OfType<IPropertySymbol>()) {
+            writtenWithEventsProperties[prop.Name] = (prop, await IsNeverWrittenOrOverriddenAsync(prop));
+        }
 
         var eventContainerToMethods = _type.GetMembers().OfType<IMethodSymbol>()
             .SelectMany(HandledEvents)
