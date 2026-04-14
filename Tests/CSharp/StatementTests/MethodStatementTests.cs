@@ -1150,7 +1150,9 @@ public partial class TestClass
 
         return false;
     }
-}");
+}
+1 target compilation errors:
+CS0825: The contextual keyword 'var' may only appear within a local variable declaration or in script code");
     }
 
     [Fact]
