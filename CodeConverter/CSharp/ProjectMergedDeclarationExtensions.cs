@@ -63,7 +63,7 @@ internal static class ProjectMergedDeclarationExtensions
         var projectDir = Path.Combine(vbProject.GetDirectoryPath(), "My Project");
 
         var compilation = await vbProject.GetCompilationAsync(cancellationToken);
-        var embeddedSourceTexts = await GetAllEmbeddedSourceTextAsync(compilation).Select((r, i) => (Text: r, Suffix: $".Static.{i+1}")).ToArrayAsync(cancellationToken);
+        var embeddedSourceTexts = await GetAllEmbeddedSourceTextAsync(compilation).SelectSafe((r, i) => (Text: r, Suffix: $".Static.{i+1}")).ToArraySafeAsync(cancellationToken);
         var generatedSourceTexts = (Text: await GetDynamicallyGeneratedSourceTextAsync(compilation), Suffix: ".Dynamic").Yield();
 
         foreach (var (text, suffix) in embeddedSourceTexts.Concat(generatedSourceTexts)) {

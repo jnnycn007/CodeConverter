@@ -91,7 +91,7 @@ internal class CodeConversion
             await EnsureBuiltAsync(containingProject is null ? Array.Empty<Project>() : new[]{containingProject});
             var conversionResult = await _joinableTaskFactory.RunAsync(async () => {
                 var result = await ConvertDocumentUnhandledAsync<TLanguageConversion>(documentFilePath, selected, cancellationToken);
-                await WriteConvertedFilesAndShowSummaryAsync(new[] { result }.ToAsyncEnumerable());
+                await WriteConvertedFilesAndShowSummaryAsync(new[] { result }.AsAsyncEnumerable());
                 return result;
             });
 
