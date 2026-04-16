@@ -689,12 +689,25 @@ internal class DeclarationNodeVisitor : VBasic.VisualBasicSyntaxVisitor<Task<CSh
         return CS.SyntaxFactory.Block(await statements.SelectManyAsync(async s => (IEnumerable<StatementSyntax>) await s.Accept(methodBodyVisitor)));
     }
 
-    private static HashSet<string> GetMyClassAccessedNames(VBSyntax.ClassBlockSyntax classBlock)
+    private HashSet<string> GetMyClassAccessedNames(VBSyntax.ClassBlockSyntax classBlock)
     {
         var memberAccesses = classBlock.DescendantNodes().OfType<VBSyntax.MemberAccessExpressionSyntax>();
         var accessedTextNames = new HashSet<string>(memberAccesses
             .Where(mae => mae.Expression is VBSyntax.MyClassExpressionSyntax)
             .Select(mae => mae.Name.Identifier.Text), StringComparer.OrdinalIgnoreCase);
+
+        // Also treat direct backing field access (_Prop) as MyClass access for virtual auto-properties.
+        // In VB, writing _Prop directly accesses the backing field, bypassing virtual dispatch -
+        // the same semantics as MyClass.Prop. In C#, these virtual properties get a MyClassProp
+        // backing property, so _Prop must map to MyClassProp.
+        var backingFieldIdentifiers = classBlock.DescendantNodes().OfType<VBSyntax.IdentifierNameSyntax>()
+            .Where(id => id.Identifier.ValueText.StartsWith("_", StringComparison.OrdinalIgnoreCase));
+        foreach (var id in backingFieldIdentifiers) {
+            if (_semanticModel.GetSymbolInfo(id).Symbol is IFieldSymbol { IsImplicitlyDeclared: true, AssociatedSymbol: IPropertySymbol { IsVirtual: true, IsAbstract: false } associatedProp }) {
+                accessedTextNames.Add(associatedProp.Name);
+            }
+        }
+
         return accessedTextNames;
     }
 
