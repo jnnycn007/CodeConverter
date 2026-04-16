@@ -969,25 +969,30 @@ End Class";
         await TestConversionVisualBasicToCSharpAsync(@"
 Structure S
 End Structure
-Sub Foo(Optional ByRef s As S = Nothing)
-End Sub
-Sub Bar()
-    Foo()
-End Sub
+Class C
+    Sub Foo(Optional ByRef s As S = Nothing)
+    End Sub
+    Sub Bar()
+        Foo()
+    End Sub
+End Class
 ", @"using System.Runtime.InteropServices;
 
 internal partial struct S
 {
 }
 
-public void Foo([Optional] ref S s)
+internal partial class C
 {
-}
+    public void Foo([Optional] ref S s)
+    {
+    }
 
-public void Bar()
-{
-    S args = default;
-    Foo(s: ref args);
+    public void Bar()
+    {
+        S args = default;
+        Foo(s: ref args);
+    }
 }");
     }
 
