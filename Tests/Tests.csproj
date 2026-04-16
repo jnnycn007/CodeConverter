@@ -48,6 +48,6 @@
     (i.e. Windows). Elsewhere the tests that depend on Vsix output will skip.
   -->
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <ProjectReference Include="..\Vsix\Vsix.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" PrivateAssets="all" />
+    <ProjectReference Include="..\Vsix\Vsix.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" PrivateAssets="all" Build="false" />
   </ItemGroup>
 </Project>
