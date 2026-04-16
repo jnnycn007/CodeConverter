@@ -981,13 +981,11 @@ End Class
 internal partial struct S
 {
 }
-
 internal partial class C
 {
     public void Foo([Optional] ref S s)
     {
     }
-
     public void Bar()
     {
         S args = default;
