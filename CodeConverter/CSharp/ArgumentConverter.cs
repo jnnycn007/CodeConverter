@@ -97,7 +97,7 @@ internal class ArgumentConverter
             var csRefKind = CommonConversions.GetCsRefKind(parameter);
             return csRefKind != RefKind.None
                 ? CreateOptionalRefArg(parameter, csRefKind)
-                : CS.SyntaxFactory.Argument(CommonConversions.Literal(parameter.ExplicitDefaultValue));
+                : CS.SyntaxFactory.Argument(LiteralOrDefault(parameter.ExplicitDefaultValue, parameter.Type));
         }
     }
 
@@ -142,6 +142,14 @@ internal class ArgumentConverter
         }
 
         return local.IdentifierName;
+    }
+
+    private static CSSyntax.ExpressionSyntax LiteralOrDefault(object value, ITypeSymbol paramType)
+    {
+        if (value is null && paramType.IsValueType) {
+            return ValidSyntaxFactory.DefaultExpression;
+        }
+        return CommonConversions.Literal(value);
     }
 
     private ISymbol GetInvocationSymbol(SyntaxNode invocation)
@@ -226,7 +234,7 @@ internal class ArgumentConverter
         var type = CommonConversions.GetTypeSyntax(p.Type);
         CSSyntax.ExpressionSyntax initializer;
         if (p.HasExplicitDefaultValue) {
-            initializer = CommonConversions.Literal(p.ExplicitDefaultValue);
+            initializer = LiteralOrDefault(p.ExplicitDefaultValue, p.Type);
         } else if (HasOptionalAttribute(p)) {
             if (TryGetDefaultParameterValueAttributeValue(p, out var defaultValue)) {
                 initializer = CommonConversions.Literal(defaultValue);
