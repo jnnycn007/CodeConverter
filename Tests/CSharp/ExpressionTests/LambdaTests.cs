@@ -22,7 +22,7 @@ Public Class ConversionTest3
 
         Dim entities As New List(Of MyEntity)
 
-        Parallel.For(1, 3, Sub(i As Integer)
+        Parallel.For(1, 3, Sub(i)
                                Dim result As String = (From e In entities
                                                        Where e.EntityId = 123
                                                        Select e.Name).Single
@@ -44,7 +44,7 @@ public partial class ConversionTest3
 
         var entities = new List<MyEntity>();
 
-        Parallel.For(1, 3, (i) =>
+        Parallel.For(1, 3, i =>
         {
             string result = (from e in entities
                              where e.EntityId == 123
