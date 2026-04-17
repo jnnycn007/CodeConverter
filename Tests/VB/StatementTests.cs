@@ -1301,10 +1301,10 @@ End Class");
 }", @"Friend Class TestClass
     Public Sub Classify(n As Integer)
         Select Case n
-            Case Is < 0
-                System.Console.Write(""negative"")
-            Case Is >= 0
-                System.Console.Write(""non-negative"")
+            Case < 0
+                Console.Write(""negative"")
+            Case >= 0
+                Console.Write(""non-negative"")
         End Select
     End Sub
 End Class");
