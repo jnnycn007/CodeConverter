@@ -1147,7 +1147,6 @@ public partial class TestClass
                     return true;
                 }
         }
-
         return false;
     }
 }
