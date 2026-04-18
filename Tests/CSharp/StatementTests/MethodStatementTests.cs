@@ -1581,7 +1581,10 @@ internal partial class TestClass
     private int FuncReturningAssignedValue()
     {
         int FuncReturningAssignedValueRet = default;
-        void aSub(object y) { return; };
+        void aSub(object y)
+        {
+            return;
+        };
         FuncReturningAssignedValueRet = 3;
         return FuncReturningAssignedValueRet;
     }
