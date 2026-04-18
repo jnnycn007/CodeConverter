@@ -861,7 +861,8 @@ internal class MethodBodyExecutableStatementVisitor : VBasic.VisualBasicSyntaxVi
                         lowerBoundCheck = ComparisonAdjustedForStringComparison(node, range.LowerBound, caseTypeInfo, lowerBound, csCaseVar, switchExprTypeInfo, ComparisonKind.LessThanOrEqual);
                     } else {
                         lowerBound = CommonConversions.TypeConversionAnalyzer.AddExplicitConversion(range.LowerBound, lowerBound);
-                        lowerBoundCheck = SyntaxFactory.BinaryExpression(SyntaxKind.LessThanOrEqualExpression, lowerBound, csCaseVar);
+                        var (lowerBoundForComparison, csCaseVarForLower) = CastBothToUnderlyingTypeIfEnum(switchExprTypeInfo.ConvertedType, lowerBound, csCaseVar);
+                        lowerBoundCheck = SyntaxFactory.BinaryExpression(SyntaxKind.LessThanOrEqualExpression, lowerBoundForComparison, csCaseVarForLower);
                     }
                     var upperBound = await range.UpperBound.AcceptAsync<ExpressionSyntax>(_expressionVisitor);
                     ExpressionSyntax upperBoundCheck;
@@ -870,7 +871,8 @@ internal class MethodBodyExecutableStatementVisitor : VBasic.VisualBasicSyntaxVi
                         upperBoundCheck = ComparisonAdjustedForStringComparison(node, range.UpperBound, switchExprTypeInfo, csCaseVar, upperBound, caseTypeInfo, ComparisonKind.LessThanOrEqual);
                     } else {
                         upperBound = CommonConversions.TypeConversionAnalyzer.AddExplicitConversion(range.UpperBound, upperBound);
-                        upperBoundCheck = SyntaxFactory.BinaryExpression(SyntaxKind.LessThanOrEqualExpression, csCaseVar, upperBound);
+                        var (csCaseVarForUpper, upperBoundForComparison) = CastBothToUnderlyingTypeIfEnum(switchExprTypeInfo.ConvertedType, csCaseVar, upperBound);
+                        upperBoundCheck = SyntaxFactory.BinaryExpression(SyntaxKind.LessThanOrEqualExpression, csCaseVarForUpper, upperBoundForComparison);
                     }
                     var withinBounds = SyntaxFactory.BinaryExpression(SyntaxKind.LogicalAndExpression, lowerBoundCheck, upperBoundCheck);
                     labels.Add(VarWhen(varName, withinBounds));
@@ -929,6 +931,21 @@ internal class MethodBodyExecutableStatementVisitor : VBasic.VisualBasicSyntaxVi
 
     private static bool IsEnumOrNullableEnum(ITypeSymbol convertedType) =>
         convertedType?.IsEnumType() == true || convertedType?.GetNullableUnderlyingType()?.IsEnumType() == true;
+
+    /// <summary>
+    /// When the switch expression is an enum, C# does not support &lt;= comparisons directly on enum values.
+    /// Cast both sides to the enum's underlying integer type so the comparison compiles.
+    /// </summary>
+    private (ExpressionSyntax Left, ExpressionSyntax Right) CastBothToUnderlyingTypeIfEnum(ITypeSymbol switchExprType, ExpressionSyntax left, ExpressionSyntax right)
+    {
+        var enumType = switchExprType?.IsEnumType() == true ? switchExprType as INamedTypeSymbol
+            : switchExprType?.GetNullableUnderlyingType() as INamedTypeSymbol;
+        if (enumType?.EnumUnderlyingType is not { } underlyingType) {
+            return (left, right);
+        }
+        var typeSyntax = CommonConversions.GetTypeSyntax(underlyingType);
+        return (ValidSyntaxFactory.CastExpression(typeSyntax, left), ValidSyntaxFactory.CastExpression(typeSyntax, right));
+    }
 
     private static CasePatternSwitchLabelSyntax VarWhen(SyntaxToken varName, ExpressionSyntax binaryExp)
     {

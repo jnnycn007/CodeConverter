@@ -1112,6 +1112,49 @@ CS0825: The contextual keyword 'var' may only appear within a local variable dec
     }
 
     [Fact]
+    public async Task SelectCaseWithEnumRangeAsync()
+    {
+        await TestConversionVisualBasicToCSharpAsync(@"Public Class TestClass
+    Enum UserLevel
+        City_Staff
+        Admin
+        Fixity_ROOT
+    End Enum
+
+    Shared Function IsPrivileged(level As UserLevel) As Boolean
+        Select Case level
+            Case UserLevel.City_Staff To UserLevel.Fixity_ROOT
+                Return True
+        End Select
+        Return False
+    End Function
+End Class", @"
+public partial class TestClass
+{
+    public enum UserLevel
+    {
+        City_Staff,
+        Admin,
+        Fixity_ROOT
+    }
+
+    public static bool IsPrivileged(UserLevel level)
+    {
+        switch (level)
+        {
+            case var @case when (int)UserLevel.City_Staff <= (int)@case && (int)@case <= (int)UserLevel.Fixity_ROOT:
+                {
+                    return true;
+                }
+        }
+        return false;
+    }
+}
+1 target compilation errors:
+CS0825: The contextual keyword 'var' may only appear within a local variable declaration or in script code");
+    }
+
+    [Fact]
     public async Task SelectCaseWithStringAsync()
     {
         await TestConversionVisualBasicToCSharpAsync(@"Public Class TestClass
