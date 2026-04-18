@@ -1643,6 +1643,12 @@ internal class NodesVisitor : CS.CSharpSyntaxVisitor<VisualBasicSyntaxNode>
 
     public override VisualBasicSyntaxNode VisitCasePatternSwitchLabel(CSSyntax.CasePatternSwitchLabelSyntax node)
     {
+        if (node.Pattern is CSSyntax.RelationalPatternSyntax relational) {
+            var value = (ExpressionSyntax)relational.Expression.Accept(TriviaConvertingVisitor);
+            var (caseClauseKind, tokenKind) = GetRelationalCaseClauseKinds(CS.CSharpExtensions.Kind(relational.OperatorToken));
+            return SyntaxFactory.RelationalCaseClause(caseClauseKind,
+                SyntaxFactory.Token(tokenKind), value);
+        }
         var condition = node.WhenClause.Condition.SkipIntoParens();
         switch (condition) {
             case CSSyntax.BinaryExpressionSyntax bes when node.Pattern.ToString().StartsWith("var", StringComparison.InvariantCulture): //VarPatternSyntax (not available in current library version)
@@ -1654,6 +1660,15 @@ internal class NodesVisitor : CS.CSharpSyntaxVisitor<VisualBasicSyntaxNode>
                 throw new NotSupportedException(condition.GetType() + " in switch case");
         }
     }
+
+    private static (SyntaxKind CaseClauseKind, SyntaxKind TokenKind) GetRelationalCaseClauseKinds(CS.SyntaxKind csTokenKind) => csTokenKind switch {
+        CS.SyntaxKind.LessThanToken => (SyntaxKind.CaseLessThanClause, SyntaxKind.LessThanToken),
+        CS.SyntaxKind.LessThanEqualsToken => (SyntaxKind.CaseLessThanOrEqualClause, SyntaxKind.LessThanEqualsToken),
+        CS.SyntaxKind.GreaterThanToken => (SyntaxKind.CaseGreaterThanClause, SyntaxKind.GreaterThanToken),
+        CS.SyntaxKind.GreaterThanEqualsToken => (SyntaxKind.CaseGreaterThanOrEqualClause, SyntaxKind.GreaterThanEqualsToken),
+        _ => throw new NotSupportedException($"Relational operator token {csTokenKind} not supported in VB case clause")
+    };
+
     private INamedTypeSymbol GetStructOrClassSymbol(CS.CSharpSyntaxNode node) {
         return (INamedTypeSymbol)_semanticModel.GetDeclaredSymbol(node.Ancestors().First(x => x is CSSyntax.ClassDeclarationSyntax || x is CSSyntax.StructDeclarationSyntax));
     }

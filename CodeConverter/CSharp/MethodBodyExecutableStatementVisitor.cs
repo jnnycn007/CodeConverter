@@ -843,6 +843,13 @@ internal class MethodBodyExecutableStatementVisitor : VBasic.VisualBasicSyntaxVi
                     if (isObjectComparison) {
                         caseSwitchLabelSyntax = WrapInCasePatternSwitchLabelSyntax(node, relational.Value, csRelationalValue, false, operatorKind);
                     }
+                    else if (!isStringComparison && _semanticModel.GetConstantValue(relational.Value).HasValue) {
+                        csRelationalValue = CommonConversions.TypeConversionAnalyzer.AddExplicitConversion(relational.Value, csRelationalValue);
+                        var operatorToken = SyntaxFactory.Token(GetRelationalPatternTokenKind(operatorKind));
+                        caseSwitchLabelSyntax = SyntaxFactory.CasePatternSwitchLabel(
+                            SyntaxFactory.RelationalPattern(operatorToken, csRelationalValue),
+                            SyntaxFactory.Token(SyntaxKind.ColonToken));
+                    }
                     else {
                         var varName = CommonConversions.CsEscapedIdentifier(GetUniqueVariableNameInScope(node, "case"));
                         ExpressionSyntax csLeft = ValidSyntaxFactory.IdentifierName(varName);
@@ -1035,6 +1042,14 @@ internal class MethodBodyExecutableStatementVisitor : VBasic.VisualBasicSyntaxVi
         VBasic.SyntaxKind.CaseNotEqualsClause => ComparisonKind.NotEquals,
         VBasic.SyntaxKind.CaseGreaterThanOrEqualClause => ComparisonKind.GreaterThanOrEqual,
         VBasic.SyntaxKind.CaseGreaterThanClause => ComparisonKind.GreaterThan,
+        _ => throw new ArgumentOutOfRangeException(nameof(caseClauseKind), caseClauseKind, null)
+    };
+
+    private static CS.SyntaxKind GetRelationalPatternTokenKind(VBasic.SyntaxKind caseClauseKind) => caseClauseKind switch {
+        VBasic.SyntaxKind.CaseLessThanClause => CS.SyntaxKind.LessThanToken,
+        VBasic.SyntaxKind.CaseLessThanOrEqualClause => CS.SyntaxKind.LessThanEqualsToken,
+        VBasic.SyntaxKind.CaseGreaterThanOrEqualClause => CS.SyntaxKind.GreaterThanEqualsToken,
+        VBasic.SyntaxKind.CaseGreaterThanClause => CS.SyntaxKind.GreaterThanToken,
         _ => throw new ArgumentOutOfRangeException(nameof(caseClauseKind), caseClauseKind, null)
     };
 
