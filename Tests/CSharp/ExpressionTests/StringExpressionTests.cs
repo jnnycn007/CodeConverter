@@ -566,4 +566,28 @@ internal partial class TestClass
     }
 }");
     }
+
+    [Fact]
+    public async Task CharEqualityInConditionAsync()
+    {
+        await TestConversionVisualBasicToCSharpAsync(@"Class TestClass
+    Private Function IsEmpty(c As Char) As Boolean
+        If c = """" Then
+            Return True
+        End If
+        Return False
+    End Function
+End Class", @"
+internal partial class TestClass
+{
+    private bool IsEmpty(char c)
+    {
+        if (c == char.MinValue)
+        {
+            return true;
+        }
+        return false;
+    }
+}");
+    }
 }
