@@ -874,4 +874,49 @@ public partial class VisualBasicClass
     }
 }");
     }
+
+    /// <summary>Issue #827: VB auto-property backing field access (_Prop) should map to MyClassProp for overridable properties</summary>
+    [Fact]
+    public async Task TestOverridableAutoPropertyBackingFieldAccessAsync()
+    {
+        await TestConversionVisualBasicToCSharpAsync(@"Class Foo
+    Overridable Property Prop As Integer = 5
+
+    Sub Test()
+        _Prop = 10
+        Dim isCorrect = MyClass.Prop = 10
+    End Sub
+End Class
+Class Child
+    Inherits Foo
+    Overrides Property Prop As Integer = 20
+End Class", @"
+internal partial class Foo
+{
+    public int MyClassProp { get; set; } = 5;
+
+    public virtual int Prop
+    {
+        get
+        {
+            return MyClassProp;
+        }
+
+        set
+        {
+            MyClassProp = value;
+        }
+    }
+
+    public void Test()
+    {
+        MyClassProp = 10;
+        bool isCorrect = MyClassProp == 10;
+    }
+}
+internal partial class Child : Foo
+{
+    public override int Prop { get; set; } = 20;
+}");
+    }
 }

@@ -293,7 +293,12 @@ internal class CommonConversions
                     // AND the first explicitly declared parameter is this symbol, we need to replace it with value.
                     text = "value";
                 } else if (normalizedText.StartsWith("_", StringComparison.OrdinalIgnoreCase) && idSymbol is IFieldSymbol propertyFieldSymbol && propertyFieldSymbol.AssociatedSymbol?.IsKind(SymbolKind.Property) == true) {
-                    text = propertyFieldSymbol.AssociatedSymbol.Name;
+                    // For virtual auto-properties, VB backing field _Prop maps to the C# MyClassProp backing property (bypasses virtual dispatch).
+                    // Exception: when accessed as MyClass._Prop, NameExpressionNodeVisitor adds the "MyClass" prefix itself, so we just return the property name.
+                    var isAccessedViaMyClass = id.Parent?.Parent is VBSyntax.MemberAccessExpressionSyntax { Expression: VBSyntax.MyClassExpressionSyntax };
+                    text = !isAccessedViaMyClass && propertyFieldSymbol.IsImplicitlyDeclared && propertyFieldSymbol.AssociatedSymbol is IPropertySymbol { IsVirtual: true, IsAbstract: false } vProp
+                        ? "MyClass" + vProp.Name
+                        : propertyFieldSymbol.AssociatedSymbol.Name;
                 } else if (normalizedText.EndsWith("Event", StringComparison.OrdinalIgnoreCase) && idSymbol is IFieldSymbol eventFieldSymbol && eventFieldSymbol.AssociatedSymbol?.IsKind(SymbolKind.Event) == true) {
                     text = eventFieldSymbol.AssociatedSymbol.Name;
                 } else if (WinformsConversions.MayNeedToInlinePropertyAccess(id.Parent, idSymbol) && _typeContext.HandledEventsAnalysis.ShouldGeneratePropertyFor(idSymbol.Name)) {
