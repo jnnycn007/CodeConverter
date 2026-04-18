@@ -561,7 +561,7 @@ internal partial class TestClass
     {
         char testChar = default;
         bool testResult = testChar == char.MinValue;
-        bool testResult2 = char.MinValue == testChar;
+        bool testResult2 = testChar == char.MinValue;
         bool testResult3 = testChar != char.MinValue;
     }
 }");
