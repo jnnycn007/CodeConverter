@@ -41,13 +41,4 @@
   <ItemGroup>
     <ProjectReference Include="..\CodeConv\CodeConv.csproj" />
   </ItemGroup>
-  <!--
-    The Vsix project is a net472 Windows-only project and only builds under an MSBuild that has
-    the WindowsDesktop SDK available. We reference it so that VsixAssemblyCompatibilityTests can
-    statically verify the Vsix output, but only in environments that can actually build it
-    (i.e. Windows). Elsewhere the tests that depend on Vsix output will skip.
-  -->
-  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
-    <ProjectReference Include="..\Vsix\Vsix.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" PrivateAssets="all" />
-  </ItemGroup>
 </Project>

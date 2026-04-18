@@ -961,4 +961,38 @@ End Class";
         Assert.Contains("GetLicenseMaybe", output);
     }
 
+    [Fact]
+    public async Task OptionalStructRefParameterUsesDefaultNotNullIssue886Async()
+    {
+        // Issue #886: When a VB method has an optional ByRef struct parameter with Nothing as the default,
+        // the generated C# should use `default` rather than `null` (null is not valid for value types).
+        await TestConversionVisualBasicToCSharpAsync(@"
+Structure S
+End Structure
+Class C
+    Sub Foo(Optional ByRef s As S = Nothing)
+    End Sub
+    Sub Bar()
+        Foo()
+    End Sub
+End Class
+", @"using System.Runtime.InteropServices;
+
+internal partial struct S
+{
+}
+
+internal partial class C
+{
+    public void Foo([Optional] ref S s)
+    {
+    }
+    public void Bar()
+    {
+        S args = default;
+        Foo(s: ref args);
+    }
+}");
+    }
+
 }
