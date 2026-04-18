@@ -914,7 +914,6 @@ internal partial class Foo
         bool isCorrect = MyClassProp == 10;
     }
 }
-
 internal partial class Child : Foo
 {
     public override int Prop { get; set; } = 20;
