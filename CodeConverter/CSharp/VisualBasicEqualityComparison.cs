@@ -79,6 +79,7 @@ internal class VisualBasicEqualityComparison
 
         if (typeInfos.All(
                 t => t.Type == null || t.Type.SpecialType == SpecialType.System_String ||
+                     t.Type.SpecialType == SpecialType.System_Char ||
                      t.Type.IsArrayOf(SpecialType.System_Char) ) ) {
             return RequiredType.StringOnly;
         }
@@ -177,20 +178,38 @@ internal class VisualBasicEqualityComparison
     }
 
     public bool TryConvertToNullOrEmptyCheck(VBSyntax.BinaryExpressionSyntax node, ExpressionSyntax lhs,
-        ExpressionSyntax rhs, out CSharpSyntaxNode? visitBinaryExpression)
+        ExpressionSyntax rhs, TypeInfo lhsTypeInfo, TypeInfo rhsTypeInfo, out CSharpSyntaxNode? visitBinaryExpression)
     {
-        if (OptionCompareTextCaseInsensitive)
-        {
-            visitBinaryExpression = null;
-            return false;
-        }
-
         bool lhsEmpty = IsNothingOrEmpty(node.Left);
         bool rhsEmpty = IsNothingOrEmpty(node.Right);
 
         if (lhsEmpty || rhsEmpty)
         {
             var arg = lhsEmpty ? rhs : lhs;
+            var argType = lhsEmpty ? rhsTypeInfo : lhsTypeInfo;
+
+            if (argType.Type?.SpecialType == SpecialType.System_Char) {
+                // char = "" in VB means char == '\0' (char.MinValue) in C#; not affected by OptionCompareText
+                var charMinValue = SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
+                    SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.CharKeyword)),
+                    ValidSyntaxFactory.IdentifierName("MinValue"));
+                var equalityKind = node.IsKind(VBasic.SyntaxKind.NotEqualsExpression) ? SyntaxKind.NotEqualsExpression : SyntaxKind.EqualsExpression;
+                var opToken = SyntaxFactory.Token(node.IsKind(VBasic.SyntaxKind.NotEqualsExpression) ? SyntaxKind.ExclamationEqualsToken : SyntaxKind.EqualsEqualsToken);
+                visitBinaryExpression = SyntaxFactory.BinaryExpression(equalityKind, arg, opToken, charMinValue);
+                return true;
+            }
+
+            if (OptionCompareTextCaseInsensitive)
+            {
+                visitBinaryExpression = null;
+                return false;
+            }
+
+            if (argType.Type?.SpecialType != SpecialType.System_String && argType.Type?.SpecialType != SpecialType.System_Object) {
+                visitBinaryExpression = null;
+                return false;
+            }
+
             var nullOrEmpty = SyntaxFactory.InvocationExpression(
                 SyntaxFactory.MemberAccessExpression(SyntaxKind.SimpleMemberAccessExpression,
                     SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.StringKeyword)),
@@ -207,7 +226,7 @@ internal class VisualBasicEqualityComparison
         return false;
     }
 
-    private bool IsNothingOrEmpty(VBSyntax.ExpressionSyntax expressionSyntax)
+    public bool IsNothingOrEmpty(VBSyntax.ExpressionSyntax expressionSyntax)
     {
         expressionSyntax = expressionSyntax.SkipIntoParens();
 

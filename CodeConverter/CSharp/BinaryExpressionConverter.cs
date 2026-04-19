@@ -82,11 +82,15 @@ internal class BinaryExpressionConverter
             case VisualBasicEqualityComparison.RequiredType.StringOnly:
                 if (lhsTypeInfo.ConvertedType?.SpecialType == SpecialType.System_String &&
                     rhsTypeInfo.ConvertedType?.SpecialType == SpecialType.System_String &&
-                    _visualBasicEqualityComparison.TryConvertToNullOrEmptyCheck(node, lhs, rhs, out CSharpSyntaxNode visitBinaryExpression)) {
+                    _visualBasicEqualityComparison.TryConvertToNullOrEmptyCheck(node, lhs, rhs, lhsTypeInfo, rhsTypeInfo, out CSharpSyntaxNode visitBinaryExpression)) {
                     return visitBinaryExpression;
                 }
-                (lhs, rhs) = _visualBasicEqualityComparison.AdjustForVbStringComparison(node.Left, lhs, lhsTypeInfo, false, node.Right, rhs, rhsTypeInfo, false);
-                omitConversion = true; // Already handled within for the appropriate types (rhs can become int in comparison)
+                if (lhsTypeInfo.Type?.SpecialType == SpecialType.System_Char && rhsTypeInfo.Type?.SpecialType == SpecialType.System_Char) {
+                    // Do nothing, char comparison
+                } else {
+                    (lhs, rhs) = _visualBasicEqualityComparison.AdjustForVbStringComparison(node.Left, lhs, lhsTypeInfo, false, node.Right, rhs, rhsTypeInfo, false);
+                    omitConversion = true; // Already handled within for the appropriate types (rhs can become int in comparison)
+                }
                 break;
             case VisualBasicEqualityComparison.RequiredType.Object:
                 return _visualBasicEqualityComparison.GetFullExpressionForVbObjectComparison(lhs, rhs, VisualBasicEqualityComparison.ComparisonKind.Equals, node.IsKind(VBasic.SyntaxKind.NotEqualsExpression));

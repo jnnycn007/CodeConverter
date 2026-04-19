@@ -543,4 +543,51 @@ public partial class Issue806
     }
 }");
     }
+
+    [Fact]
+    public async Task CharEqualityEmptyStringAsync()
+    {
+        await TestConversionVisualBasicToCSharpAsync(@"Class TestClass
+    Private Sub TestMethod()
+        Dim testChar As Char = Nothing
+        Dim testResult = testChar = """"
+        Dim testResult2 = """" = testChar
+        Dim testResult3 = testChar <> """"
+    End Sub
+End Class", @"
+internal partial class TestClass
+{
+    private void TestMethod()
+    {
+        char testChar = default;
+        bool testResult = testChar == char.MinValue;
+        bool testResult2 = testChar == char.MinValue;
+        bool testResult3 = testChar != char.MinValue;
+    }
+}");
+    }
+
+    [Fact]
+    public async Task CharEqualityInConditionAsync()
+    {
+        await TestConversionVisualBasicToCSharpAsync(@"Class TestClass
+    Private Function IsEmpty(c As Char) As Boolean
+        If c = """" Then
+            Return True
+        End If
+        Return False
+    End Function
+End Class", @"
+internal partial class TestClass
+{
+    private bool IsEmpty(char c)
+    {
+        if (c == char.MinValue)
+        {
+            return true;
+        }
+        return false;
+    }
+}");
+    }
 }
